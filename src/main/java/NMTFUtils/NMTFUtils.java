@@ -1,7 +1,7 @@
 package NMTFUtils;
 
-import bean.tfidfDocument;
 import bean.TFIDF;
+import bean.tfidfDocument;
 import common.MatDataNode;
 import de.bwaldvogel.liblinear.Predict;
 import de.bwaldvogel.liblinear.Train;
@@ -22,7 +22,8 @@ public class NMTFUtils {
 //        TF2TFIDF();
         //一定要把原领域的test加入到训练集中,论文中的实验是4000天训练数据
         //join();
-        batchfor20newsgroup();
+//        batchfor20newsgroup();
+        getSVMResult_newsgroup();
     }
 
     /**
@@ -75,7 +76,7 @@ public class NMTFUtils {
 
         // 初始化字典
         Map<String, Integer> Dic = TFIDF.initDicWithoutStopWord(new String[]{
-            trainPath, testpath}, sets);
+                trainPath, testpath}, sets);
 
         // 初始化训练语料
         Map<String, tfidfDocument> cnTest = TFIDF.readFille(testpath);
@@ -259,7 +260,7 @@ public class NMTFUtils {
         String testPath = "e:\\cls-acl10-processed_cutshortdoc\\de\\music\\trans\\en\\music\\test.processed.dat";
         // 初始化字典
         Map<String, Integer> cnDic = TFIDF.initDic(new String[]{
-            trainPath, testPath});
+                trainPath, testPath});
         System.out.println("词典长度 : " + cnDic.size());
         PrintStream ps = new PrintStream("c:/NMTF/dict.dat");
         Set<Map.Entry<String, Integer>> entries = cnDic.entrySet();
@@ -400,21 +401,40 @@ public class NMTFUtils {
 
         // 初始化字典
         Map<String, Integer> cnDic = TFIDF.initDicWithoutStopWord(new String[]{
-            trainPath,
-            testpath}, sets);
+                trainPath,
+                testpath}, sets);
 
         // 初始化训练语料
         Map<String, tfidfDocument> cnTest = TFIDF.readFille(testpath);
         // 初始化未标注语料
         Map<String, tfidfDocument> Train = TFIDF.readFille(trainPath);
-
+        
         String[] cnTestPath = {"C:/tmp/",
-                               "model.dat", "train.dat",
-                               "test_rand.dat", "result.dat"};
+                "model.dat", "train.dat",
+                "test_rand.dat", "result.dat"};
         TFIDF.saveDocsAsSVM(cnTestPath[0] + cnTestPath[2], Train, cnDic);
         TFIDF.saveDocsAsSVM(cnTestPath[0] + cnTestPath[3], cnTest, cnDic);
         result = runTestLinear(cnTestPath, null, true, 1);
         return result;
+    }
+
+    /**
+     * 获取SVM对跨领域分类的结果
+     *
+     * @throws Exception
+     */
+    public static void getSVMResult_newsgroup() throws Exception {
+        PrintStream ps = new PrintStream("c:/AllSVM_result_newsgroup.txt");
+        String base = "G:\\毕业设计论文\\20NG_final";
+        String cat[] = {"comp_rec", "comp_sci", "comp_talk", "rec_sci", "rec_talk", "sci_talk"};
+        for (int i = 0; i < cat.length; i++) {
+            String trainPath = String.format("G:\\毕业设计论文\\20NG_final\\%s\\train.dat", cat[i]);
+            String testpath = String.format("G:\\毕业设计论文\\20NG_final\\%s\\test.dat", cat[i]);
+            double score = runSVM(trainPath, testpath, null);
+            ps.printf("%.2f\n", score * 100);
+        }
+        ps.flush();
+        ps.close();
     }
 
     /**
@@ -446,21 +466,21 @@ public class NMTFUtils {
                                         boolean train, int randNum) throws Exception {
         if (train) {
             String[] argv1 = {"-s", "0", "-c", "1.0", args[0] + args[2], // train
-                              args[0] + args[1] // model
-        };
+                    args[0] + args[1] // model
+            };
             Train.main(argv1);
             System.out.println("SVM model training is Done!  " + args[0]
-                               + args[2]);
+                    + args[2]);
         }
 
         String[] argv2 = {"-b", "1", args[0] + args[3], // test
-                          args[0] + args[1], // model
-                          args[0] + args[4] // output
-    };// usage: svm_predict [options] test_file model_file output_file
+                args[0] + args[1], // model
+                args[0] + args[4] // output
+        };// usage: svm_predict [options] test_file model_file output_file
 
         double result = Predict.main(argv2, resultPath);
         System.out.println("SVM model prediction is Done!  " + args[0]
-                           + args[3]);
+                + args[3]);
         return result;
     }
 
@@ -478,13 +498,13 @@ public class NMTFUtils {
             for (int i = 0; i < cat.length; i++) {
                 for (int k = 0; k < cat.length; k++) {
                     String trainPath = String.format("python ./clscl_train en %s cls-acl10-processed/en/%s/train.processed "
-                                                     + "cls-acl10-processed/en/%s/unlabeled.processed"
-                                                     + " cls-acl10-processed/%s/%s/unlabeled.processed "
-                                                     + "cls-acl10-processed/dict/en_%s_dict.txt "
-                                                     + "model.bz2 --phi 30 --max-unlabeled=50000 -k 100 -m 450 --strategy=parallel", language[j], cat[i], cat[i], language[j], cat[k], language[j]);
+                            + "cls-acl10-processed/en/%s/unlabeled.processed"
+                            + " cls-acl10-processed/%s/%s/unlabeled.processed "
+                            + "cls-acl10-processed/dict/en_%s_dict.txt "
+                            + "model.bz2 --phi 30 --max-unlabeled=50000 -k 100 -m 450 --strategy=parallel", language[j], cat[i], cat[i], language[j], cat[k], language[j]);
 
                     String testpath = String.format("python ./clscl_predict cls-acl10-processed/en/%s/train.processed"
-                                                    + " model.bz2 cls-acl10-processed/%s/%s/test.processed", cat[i], language[j], cat[k]);
+                            + " model.bz2 cls-acl10-processed/%s/%s/test.processed", cat[i], language[j], cat[k]);
                     ps.println(String.format("##%s\t%s\t%s", language[j], cat[i], cat[k]));
                     ps.println(trainPath);
                     ps.println(testpath);

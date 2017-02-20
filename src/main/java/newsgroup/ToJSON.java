@@ -20,6 +20,45 @@ import java.util.stream.Collectors;
 public class ToJSON {
 
     public static void main(String[] args) throws IOException {
+        amazon();
+        newsgroup();
+    }
+
+    public static void amazon() throws IOException {
+        File file = new File("C:\\20170125毕业设计\\amazon数据集及结果\\mydata_add_withtraintest\\");
+        List<String> paths = new ArrayList<>();
+        path(file, paths, "_tsne_");
+        for (String path : paths) {
+            go2json2(path, path.contains("-d3"));
+        }
+//        go2json2("C:\\20170125毕业设计\\amazon数据集及结果\\mydata_add_withtraintest\\en_de_books_books\\en_de_books_books_tsne_LSF-d3.csv", true);
+//        go2json2("C:\\20170125毕业设计\\amazon数据集及结果\\mydata_add_withtraintest\\en_de_books_books\\en_de_books_books_tsne_mtrick-d3.csv", true);
+    }
+
+    public static void newsgroup() throws IOException {
+
+        File file = new File("C:\\20170125毕业设计\\20newsgroup数据集及结果\\20NG_matlabformat\\");
+        List<String> paths = new ArrayList<>();
+        path(file, paths, "_tsne_");
+        for (String path : paths) {
+            go2json2(path, path.contains("-d3"));
+        }
+    }
+
+    static void path(File file, List<String> paths, String filter) {
+        if (file.isDirectory()) {
+            for (File temp : file.listFiles()) {
+                path(temp, paths, filter);
+            }
+        } else {
+            if (file.getName().contains(filter)) {
+                paths.add(file.getAbsolutePath());
+            }
+        }
+    }
+
+    public static void newsgroup2() throws IOException {
+
         String[] cats = {"comp_rec", "comp_sci", "comp_talk", "rec_sci", "rec_talk", "sci_talk"};
 //        String BasePath = "C:\\20170125毕业设计\\tsne_show\\echarts\\data\\comp_rec_tsne_our.csv";
         String base2d = "C:\\20170125毕业设计\\20newsgroup数据集及结果\\20NG_matlabformat\\%s\\%s_tsne_%s.csv";
@@ -59,7 +98,14 @@ public class ToJSON {
         } else if (path.contains("TriTL")) {
             name = "TriTL";
         } else if (path.contains("our")) {
-            name = "our";
+            name = "LAM";
+            path = path.replaceAll("our", "LAM");
+        } else if (path.contains("KLS")) {
+            name = "LAM";
+            path = path.replaceAll("KLS", "LAM");
+        } else if (path.contains("LSF")) {
+            name = "LSF";
+            path = path.replaceAll("LSF", "LSF");
         }
         StringBuilder sb = new StringBuilder();
         sb.append("var " + name + "=").append("[\n").append(cat1.toString()).append("\n,\n").append(cat2.toString()).append("\n];");
