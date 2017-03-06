@@ -1,6 +1,9 @@
 package bean;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -30,12 +33,12 @@ public class TFIDF {
                 docs.put(docID, doc);
 
                 Integer wordSize = Integer.parseInt(line.substring(0,
-                                                                   line.indexOf(' ')));
+                        line.indexOf(' ')));
                 line = line.substring(line.indexOf(' ') + 1);
                 doc.setRealSize(wordSize);
 
                 Double polar = Double.parseDouble(line.substring(0,
-                                                                 line.indexOf(' ')));
+                        line.indexOf(' ')));
                 line = line.substring(line.indexOf(' ') + 1);
                 doc.setPolarity(polar);
 
@@ -243,8 +246,8 @@ public class TFIDF {
      * 计算tfidf
      *
      * @param docs 带计算文档 提供tf
-     * @param df 关键字df
-     * @param dic 字典，提供id
+     * @param df   关键字df
+     * @param dic  字典，提供id
      * @return
      */
     private static Map<String, tfidfDocument> CalTfidf(
@@ -346,6 +349,57 @@ public class TFIDF {
         out.flush();
         out.close();
         System.out.println("|\t|\n共输出文档 " + docMap.size() + " 条");
+    }
+
+    /**
+     * 将文档保存为SVM的训练格式
+     *
+     * @param docMap
+     * @throws Exception
+     */
+    public static int[] saveDocsAsTFIDFFOR_ZhangHe(String tfidfPath, String labelPath,
+                                                   Map<String, tfidfDocument> docMap, Map<String, Integer> dic)
+            throws Exception {
+        int maxWordId = 0;
+        int maxDocId = 0;
+        System.out.println("|\t|\n" + tfidfPath + "TFIDF模型开始写入...");
+        FileWriter out = new FileWriter(tfidfPath);
+        FileWriter lableout = new FileWriter(labelPath);
+        docMap = CalTfidf(docMap, initDf(docMap), dic);
+        // 按照文档的ID排序
+        List<Entry<String, tfidfDocument>> doclist = new ArrayList<Map.Entry<String, tfidfDocument>>(
+                docMap.entrySet());
+        // 按照文档编号排序
+        Collections.sort(doclist, docIDCmp);
+        Integer docID = 1;
+        for (Entry<String, tfidfDocument> e : doclist) {
+
+            String info = String.valueOf(e.getValue().polarity.intValue());
+
+            // 文档关键字排序
+            List<Entry<String, tfidfWord>> keyList = new ArrayList<Entry<String, tfidfWord>>(
+                    e.getValue().keyMap.entrySet());
+            Collections.sort(keyList, docKeyCmp);
+            String docContext = "";
+
+            for (Entry<String, tfidfWord> e1 : keyList) {
+                if (dic.containsKey(e1.getKey())) {
+                    docContext += e1.getValue().ID + "," + docID + "," + e1.getValue().TFIDF + "\n";
+                    maxWordId = Math.max(e1.getValue().ID, maxWordId);
+                }
+            }
+            maxDocId = docID;
+            out.write(docContext);
+            lableout.write(info + "\n");
+            docID++;
+        }
+        out.flush();
+        out.close();
+        lableout.flush();
+        lableout.close();
+
+        System.out.println("|\t|\n共输出文档 " + docMap.size() + " 条");
+        return new int[]{maxWordId, maxDocId};
     }
 
     /**
@@ -471,10 +525,10 @@ public class TFIDF {
         @Override
         public String toString() {
             return "U1{"
-                   + "ID='" + ID + '\''
-                   + ", value=" + value
-                   + ", polar=" + polar
-                   + '}';
+                    + "ID='" + ID + '\''
+                    + ", value=" + value
+                    + ", polar=" + polar
+                    + '}';
         }
     }
 }

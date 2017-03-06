@@ -17,13 +17,279 @@ public class NMTFUtils {
 
     public static void main(String[] args) throws Exception {
         System.out.println("Start!");
-
+        String path = "G:\\sougou500_dis.txt";
+        int feanum = 300;
+        zhanghe();
+//        frestatic(path, feanum);
+//        dis();
+//        zhanghe_tsneSHow();
 //        build();
 //        TF2TFIDF();
         //一定要把原领域的test加入到训练集中,论文中的实验是4000天训练数据
         //join();
 //        batchfor20newsgroup();
-        getSVMResult_newsgroup();
+//        getSVMResult_newsgroup();
+    }
+
+    public static void tsee_word() throws IOException {
+        String dicpath = "G:\\zh_showdict.dat";
+        String maxIndex = "G:\\u_max_index.csv";
+        String dataPath = "G:\\GNMF-u.csv";
+        List<String> topLines = FileUtils.readLines(new File("G:\\topline.txt"));
+        List<String> dics = FileUtils.readLines(new File(dicpath));
+        List<String> maxlabels = FileUtils.readLines(new File(maxIndex));
+        List<String> dataPaths = FileUtils.readLines(new File(dataPath));
+        StringBuilder sbdic = new StringBuilder();
+        StringBuilder data = new StringBuilder();
+        int selectcount = 500;
+        for (int i = 0; i < topLines.size(); i++) {
+            int trueIndex = Integer.valueOf(topLines.get(i)) - 1;
+            sbdic.append(String.format("{str:\"%s\",topic:%s,init: true}", dics.get(trueIndex), maxlabels.get(trueIndex)));
+            data.append(String.format("[%s]", dataPaths.get(trueIndex)));
+            if (i < topLines.size() - 1) {
+                sbdic.append(",");
+                data.append(",");
+            }
+        }
+        data.insert(0, "var W2T_Vec =[");
+        data.append("];");
+        sbdic.insert(0, "var words = [");
+        sbdic.append("];");
+        List<String> res = new ArrayList<>();
+        res.add(sbdic.toString());
+        res.add(data.toString());
+        FileUtils.writeLines(new File("G:/data.js"), res);
+    }
+
+    public static Set<String> frestatic(String path, int feanum) throws IOException {
+
+        List<String> readLines = FileUtils.readLines(new File(path));
+        int selectDocCount = readLines.size();
+        Map<String, Integer> doc = new HashMap<>();
+        for (int k = 0; k < selectDocCount; k++) {
+            String line = readLines.get(k);
+            String[] split = line.split(" ");
+            for (String word : split) {
+                Integer integer = doc.get(word);
+                if (integer != null) {
+                    integer = integer + 1;
+                } else {
+                    integer = 1;
+                }
+                doc.put(word, integer);
+            }
+        }
+        Set<String> res = new HashSet<>();
+        Set<Map.Entry<String, Integer>> entries = doc.entrySet();
+        List<Map.Entry<String, Integer>> temp = new ArrayList(entries);
+        Collections.sort(temp, (o1, o2) -> {
+            return o2.getValue().compareTo(o1.getValue());
+        });
+        temp = temp.subList(0, feanum);
+        for (Map.Entry<String, Integer> entry : temp) {
+            res.add(entry.getKey());
+        }
+        return res;
+    }
+
+
+    public static void dis() throws IOException {
+        String path = "C:\\sougou2500.txt";
+        String labelPath = "C:\\labels_s.csv";
+        List<String> readLines = FileUtils.readLines(new File(path));
+        List<String> labels = FileUtils.readLines(new File(labelPath));
+        List<String> newres = new ArrayList<>();
+        List<String> newrlabel = new ArrayList<>();
+        Set<String> ha = new HashSet<>();
+        for (int i = 0; i < readLines.size(); i++) {
+            String newline = labels.get(i) + ":" + readLines.get(i);
+            if (ha.contains(newline)) {
+                continue;
+            }
+            ha.add(newline);
+            newres.add(readLines.get(i));
+            newrlabel.add(labels.get(i));
+        }
+        FileUtils.writeLines(new File("c:/sougou2500_dis.txt"), newres);
+        FileUtils.writeLines(new File("c:/sougou2500_label_dis.txt"), newrlabel);
+    }
+
+    public static void zhanghe_tsneSHow() throws Exception {
+        String path = "G:\\sougou2500_dis.txt";
+        String labelPath = "G:\\sougou2500_label_dis.txt";
+        List<String> readLines = FileUtils.readLines(new File(path));
+        List<String> labels = FileUtils.readLines(new File(labelPath));
+        List<String> res = new ArrayList<>();
+        int i = 1;
+        if (readLines.size() == 0) {
+            System.err.println("empty");
+        }
+//        Set<String> words = frestatic("G:\\sougou2500_dis.txt", 300);
+//        System.out.println(words);
+        int selectDocCount = readLines.size();
+        for (int k = 0; k < selectDocCount; k++) {
+            String line = readLines.get(k);
+            String[] split = line.split(" ");
+            Map<String, Integer> doc = new HashMap<>();
+            int wordcount = 0;
+            for (String word : split) {
+                Integer integer = doc.get(word);
+//                if (!words.contains(integer)) {
+//                    continue;
+//                }
+                if (integer != null) {
+                    integer = integer + 1;
+                } else {
+                    integer = 1;
+                }
+                wordcount++;
+                doc.put(word, integer);
+            }
+            Set<Map.Entry<String, Integer>> entries = doc.entrySet();
+            StringBuilder sb = new StringBuilder();
+            sb.append(i + " ");
+            sb.append(wordcount + " ");
+            sb.append(labels.get(i - 1) + " ");
+            entries.stream().forEach(entry -> {
+                sb.append(entry.getKey() + ":" + entry.getValue() + " ");
+            });
+            res.add(sb.toString());
+            i++;
+        }
+        FileUtils.writeLines(new File("G:/zh_show.txt"), res);
+        saveToMatlabFormat_zhangHe("G:/zh_show.txt", new HashSet<>(), "G:/zh_show");
+    }
+
+    public static void zhanghe2() throws Exception {
+        String[] files = {"G:\\20newgroups\\train\\comp\\2", "G:\\20newgroups\\train\\rec\\8",
+                "G:\\20newgroups\\train\\sci\\12", "G:\\20newgroups\\train\\talk\\17"};
+        List<String> res = new ArrayList<>();
+        List<String> LDA = new ArrayList<>();
+        int i = 1;
+        //load words
+        List<String> strings = FileUtils.readLines(new File("C:\\vocabulary.txt"));
+        Map<String, String> wordMaps = new HashMap<>();
+        int index = 1;
+        for (String word : strings) {
+            wordMaps.put(String.valueOf(index), word);
+            index++;
+        }
+        for (String file : files) {
+            List<String> readLines = FileUtils.readLines(new File(file));
+            for (String line : readLines) {
+                String[] split = line.split(" ");
+                if (split.length <= 11) {
+                    continue;
+                }
+                int wordCount = 0;
+                StringBuilder stringBuilder = new StringBuilder();
+                for (int k = 2; k < split.length; k++) {
+                    String[] split1 = split[k].split(":");
+                    int fre = Integer.valueOf(split1[1]);
+                    wordCount += fre;
+                    for (int t = 1; t <= fre; t++) {
+                        stringBuilder.append(wordMaps.get(split1[0]) + " ");
+                    }
+                }
+                LDA.add(stringBuilder.toString().trim());
+                res.add(i + " " + wordCount + " " + line.substring(line.indexOf(" ") + 1));
+                i++;
+            }
+        }
+        FileUtils.writeLines(new File("c:/zh.txt"), res);
+        FileUtils.writeLines(new File("c:/zh_LDA.txt"), LDA);
+        saveToMatlabFormat_zhangHe("c:/zh.txt", new HashSet<>(), "c:/zhanghe");
+    }
+
+    public static void zhanghe() throws Exception {
+        String path = "G:\\张鹤\\newsgroup_cut\\subcross4\\newsgroup_selectData.txt";
+        String labelPath = "G:\\张鹤\\newsgroup_cut\\subcross4\\newsgroup_selectLabel.txt";
+        String dicPath = "G:\\张鹤\\newsgroup_cut\\vocabulary.txt";
+        Set<String> dicSets = new HashSet<>(FileUtils.readLines(new File(dicPath)));
+        List<String> alls = FileUtils.readLines(new File(path));
+        List<String> readLines = FileUtils.readLines(new File(path));
+        List<String> labels = FileUtils.readLines(new File(labelPath));
+        List<String> res = new ArrayList<>();
+        int i = 1;
+        if (readLines.size() == 0) {
+            System.err.println("empty");
+        }
+        for (String line : readLines) {
+            String[] split = line.split(" ");
+            Map<String, Integer> doc = new HashMap<>();
+            int wordcount = 0;
+            for (String word : split) {
+                if (!dicSets.contains(word)) {
+                    continue;
+                }
+                Integer integer = doc.get(word);
+                if (integer != null) {
+                    integer = integer + 1;
+                } else {
+                    integer = 1;
+                }
+                wordcount++;
+                doc.put(word, integer);
+            }
+            Set<Map.Entry<String, Integer>> entries = doc.entrySet();
+            StringBuilder sb = new StringBuilder();
+            sb.append(i + " ");
+            sb.append(wordcount + " ");
+            sb.append(labels.get(i - 1) + " ");
+            entries.stream().forEach(entry -> {
+                sb.append(entry.getKey() + ":" + entry.getValue() + " ");
+            });
+            res.add(sb.toString());
+            i++;
+        }
+
+        FileUtils.writeLines(new File("c:/zh.txt"), res);
+        saveToMatlabFormat_zhangHe("c:/zh.txt", new HashSet<>(), "G:\\张鹤\\newsgroup_cut\\subcross4\\");
+    }
+
+
+    public static double saveToMatlabFormat_zhangHe(String trainPath, Set<String> sets, String dir) throws Exception {
+
+        // 初始化字典
+        Map<String, Integer> Dic = TFIDF.initDicWithoutStopWord(new String[]{
+                trainPath}, sets);
+
+        // 初始化标注语料
+        Map<String, tfidfDocument> trainDoc = TFIDF.readFille(trainPath);
+        PrintStream ps = new PrintStream(dir + "dict.dat");
+        Set<Map.Entry<String, Integer>> entries = Dic.entrySet();
+        List<DIC> dicLists = new ArrayList<>();
+
+        for (Map.Entry<String, Integer> temp : entries) {
+            dicLists.add(new DIC(temp.getKey(), temp.getValue()));
+        }
+        Collections.sort(dicLists);
+
+//        //load words
+//        List<String> strings = FileUtils.readLines(new File("C:\\vocabulary.txt"));
+//        Map<String, String> wordMaps = new HashMap<>();
+//        int index = 1;
+//        for (String word : strings) {
+//            wordMaps.put(String.valueOf(index), word);
+//            index++;
+//        }
+//        List<Integer> toplines = new ArrayList<>();
+//        Set<String> topwords = frestatic("G:\\sougou2500_dis.txt", 500);
+        for (DIC temp : dicLists) {
+//            ps.println(temp.word + ":" + temp.id);
+            ps.println(temp.word);
+//            ps.println(wordMaps.get(temp.word));
+//            if (topwords.contains(temp.word)) {
+//                toplines.add(temp.id);
+//            }
+        }
+//        FileUtils.writeLines(new File("g:/topline.txt"), toplines);
+        ps.flush();
+        ps.close();
+        String bestTrain = dir + "Train.data";
+        String bestlabel = dir + "Train.label";
+        TFIDF.saveDocsAsTFIDFFOR_ZhangHe(bestTrain, bestlabel, trainDoc, Dic);
+        return 0;
     }
 
     /**
@@ -408,7 +674,7 @@ public class NMTFUtils {
         Map<String, tfidfDocument> cnTest = TFIDF.readFille(testpath);
         // 初始化未标注语料
         Map<String, tfidfDocument> Train = TFIDF.readFille(trainPath);
-        
+
         String[] cnTestPath = {"C:/tmp/",
                 "model.dat", "train.dat",
                 "test_rand.dat", "result.dat"};
